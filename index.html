@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>轮接系统</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #f5f5f7; user-select: none; }
+
+  .btn-receive {
+    background: linear-gradient(160deg, #22c55e, #16a34a);
+    box-shadow: 0 8px 24px rgba(34,197,94,0.4);
+    transition: transform .12s, box-shadow .12s;
+  }
+  .btn-receive:active { transform: scale(.96); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
+  .btn-receive.disabled { background: linear-gradient(160deg,#9ca3af,#6b7280); box-shadow: none; }
+
+  .card-colors { --c0:#6366f1; --c1:#ec4899; --c2:#0ea5e9; --c3:#10b981; --c4:#f59e0b; --c5:#8b5cf6; --c6:#f43f5e; --c7:#06b6d4; --c8:#84cc16; --c9:#fb923c; }
+
+  .next-ring { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #22c55e; }
+
+  @keyframes pop { 0%{transform:scale(1)} 40%{transform:scale(1.06)} 100%{transform:scale(1)} }
+  .pop { animation: pop .25s ease; }
+
+  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .fade-up { animation: fadeUp .3s ease; }
+
+  .tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:99px; font-weight:600; }
+
+  /* 模态遮罩 */
+  .modal-mask { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center; }
+  .modal-box { background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 36px; }
+</style>
+</head>
+<body class="card-colors min-h-screen flex flex-col">
+
+<!-- ===== 顶栏 ===== -->
+<div class="bg-white/80 backdrop-blur sticky top-0 z-10 border-b border-gray-100">
+  <div class="max-w-md mx-auto px-4 h-12 flex items-center justify-between">
+    <span class="font-bold text-gray-800 text-base">🏠 销售轮接</span>
+    <div class="flex gap-2">
+      <button onclick="openLog()"    class="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">记录</button>
+      <button onclick="openSettings()" class="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">设置</button>
+    </div>
+  </div>
+</div>
+
+<div class="max-w-md mx-auto w-full px-4 pt-5 pb-8 flex flex-col gap-4">
+
+  <!-- ===== 当前上位（核心区域）===== -->
+  <div id="next-card" class="bg-white rounded-3xl shadow-sm p-5 text-center">
+    <p class="text-xs text-gray-400 mb-1 tracking-widest">当前上位</p>
+    <div class="flex items-center justify-center gap-3 mb-1">
+      <span id="next-avatar" class="text-5xl">👨‍💼</span>
+      <div class="text-left">
+        <p id="next-name" class="text-3xl font-bold text-gray-900">—</p>
+        <p class="text-sm text-gray-400">今日已接 <span id="next-count" class="font-bold text-gray-700">0</span> 位</p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-300 mt-2">下一位：<span id="second-name" class="text-gray-500 font-medium">—</span></p>
+  </div>
+
+  <!-- ===== 大接客按钮 ===== -->
+  <button id="receive-btn" onclick="receiveCustomer()"
+    class="btn-receive w-full text-white text-2xl font-bold py-6 rounded-3xl">
+    ✅ 接客
+  </button>
+
+  <!-- ===== 轮转队列 ===== -->
+  <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
+    <div class="px-4 pt-4 pb-2 flex items-center justify-between">
+      <span class="text-sm font-bold text-gray-700">轮转顺序</span>
+      <span class="text-xs text-gray-400" id="active-count">0人在岗</span>
+    </div>
+    <div id="queue-list" class="px-3 pb-3 space-y-2"></div>
+  </div>
+
+</div>
+
+<!-- ===== 记录弹窗 ===== -->
+<div id="log-modal" class="modal-mask hidden" onclick="if(event.target===this)closeLog()">
+  <div class="modal-box max-h-[80vh] flex flex-col">
+    <div class="flex items-center justify-between mb-4">
+      <span class="font-bold text-gray-800">今日记录</span>
+      <div class="flex gap-2">
+        <button onclick="clearLog()" class="text-xs text-red-400 bg-red-50 px-3 py-1.5 rounded-lg">清空</button>
+        <button onclick="closeLog()" class="text-gray-400 text-xl leading-none">✕</button>
+      </div>
+    </div>
+    <div id="log-list" class="overflow-y-auto flex-1 space-y-1"></div>
+  </div>
+</div>
+
+<!-- ===== 设置弹窗 ===== -->
+<div id="settings-modal" class="modal-mask hidden" onclick="if(event.target===this)closeSettings()">
+  <div class="modal-box">
+    <div class="flex items-center justify-between mb-1">
+      <span class="font-bold text-gray-800">销售名单</span>
+      <button onclick="closeSettings()" class="text-gray-400 text-xl leading-none">✕</button>
+    </div>
+    <p class="text-xs text-gray-400 mb-4">修改名字后点保存；最多10人</p>
+    <div id="settings-list" class="space-y-2 mb-4"></div>
+    <button onclick="addSale()" class="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 text-sm mb-3">＋ 添加销售</button>
+    <button onclick="saveSettings()" class="w-full py-4 bg-blue-500 text-white rounded-2xl font-bold text-base">保存</button>
+  </div>
+</div>
+
+<!-- ===== 跳过确认 ===== -->
+<div id="skip-modal" class="modal-mask hidden" onclick="if(event.target===this)closeSkip()">
+  <div class="modal-box">
+    <p class="text-center text-2xl mb-3">⏭️</p>
+    <p id="skip-title" class="text-center font-bold text-gray-800 text-lg mb-2"></p>
+    <p class="text-center text-sm text-gray-400 mb-6">跳过后移至队尾，不计本次接客</p>
+    <div class="flex gap-3">
+      <button onclick="closeSkip()" class="flex-1 py-3.5 border border-gray-200 rounded-2xl text-gray-500 font-medium">取消</button>
+      <button onclick="confirmSkip()" class="flex-1 py-3.5 bg-orange-500 text-white rounded-2xl font-bold">确认跳过</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 常量 =====
+const AVATARS = ['👨‍💼','👩‍💼','🧑‍💼','👨‍💼','👩‍💼','🧑‍💼','👨‍💼','👩‍💼','🧑‍💼','👨‍💼'];
+const BG_COLORS = [
+  'bg-indigo-500','bg-pink-500','bg-sky-500','bg-emerald-500','bg-amber-500',
+  'bg-violet-500','bg-rose-500','bg-cyan-500','bg-lime-500','bg-orange-500'
+];
+
+// ===== 状态 =====
+function today() { return new Date().toLocaleDateString('zh-CN'); }
+
+function defaultState() {
+  return {
+    sales: ['销售A','销售B','销售C','销售D','销售E'].map(n => ({ name: n, count: 0, status: 'active' })),
+    queue: [0,1,2,3,4],
+    log: [],
+    date: today(),
+  };
+}
+
+let state = (() => {
+  try {
+    const s = JSON.parse(localStorage.getItem('slr_v2') || 'null');
+    if (!s) return defaultState();
+    if (s.date !== today()) { s.sales.forEach(x => x.count = 0); s.log = []; s.date = today(); }
+    return s;
+  } catch { return defaultState(); }
+})();
+
+function save() { localStorage.setItem('slr_v2', JSON.stringify(state)); }
+
+// ===== 渲染 =====
+function render() {
+  const active = state.queue.filter(i => state.sales[i].status === 'active');
+  const nextIdx = active[0];
+  const secIdx  = active[1];
+
+  // 当前上位
+  if (nextIdx !== undefined) {
+    const s = state.sales[nextIdx];
+    document.getElementById('next-name').textContent   = s.name;
+    document.getElementById('next-count').textContent  = s.count;
+    document.getElementById('next-avatar').textContent = AVATARS[nextIdx % AVATARS.length];
+  } else {
+    document.getElementById('next-name').textContent  = '无人在岗';
+    document.getElementById('next-count').textContent = '—';
+    document.getElementById('next-avatar').textContent = '😴';
+  }
+  document.getElementById('second-name').textContent =
+    secIdx !== undefined ? state.sales[secIdx].name : '—';
+
+  // 在岗人数
+  document.getElementById('active-count').textContent =
+    `${active.length} 人在岗`;
+
+  // 队列
+  const qEl = document.getElementById('queue-list');
+  qEl.innerHTML = '';
+  state.queue.forEach((si, pos) => {
+    const s = state.sales[si];
+    const isNext = pos === 0 && s.status === 'active';
+    const isRest = s.status === 'rest';
+    const bgClass = BG_COLORS[si % BG_COLORS.length];
+    const avatar  = AVATARS[si % AVATARS.length];
+
+    const row = document.createElement('div');
+    row.className = `flex items-center gap-3 px-3 py-2.5 rounded-2xl ${isNext ? 'bg-green-50 next-ring' : 'bg-gray-50'} ${isRest ? 'opacity-40' : ''}`;
+    row.innerHTML = `
+      <div class="w-9 h-9 rounded-full ${bgClass} flex items-center justify-center text-lg flex-shrink-0">${avatar}</div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="font-semibold text-gray-800 text-sm">${s.name}</span>
+          ${isNext ? '<span class="tag bg-green-100 text-green-700">上位</span>' : `<span class="tag bg-gray-200 text-gray-500">第${pos+1}位</span>`}
+          ${isRest ? '<span class="tag bg-gray-200 text-gray-400">休息</span>' : ''}
+        </div>
+        <span class="text-xs text-gray-400">今日 ${s.count} 位</span>
+      </div>
+      <div class="flex gap-1.5 flex-shrink-0">
+        <button onclick="toggleRest(${si})"
+          class="text-xs px-2.5 py-1.5 rounded-lg ${isRest ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'} font-medium">
+          ${isRest ? '上班' : '休息'}
+        </button>
+        ${!isNext ? `<button onclick="showSkip(${pos})"
+          class="text-xs px-2.5 py-1.5 rounded-lg bg-orange-100 text-orange-600 font-medium">跳过</button>` : ''}
+      </div>
+    `;
+    qEl.appendChild(row);
+  });
+}
+
+// ===== 接客 =====
+function receiveCustomer() {
+  const active = state.queue.filter(i => state.sales[i].status === 'active');
+  if (active.length === 0) { alert('当前没有在岗销售，请先取消休息。'); return; }
+
+  const si = active[0];
+  state.sales[si].count++;
+  state.queue = state.queue.filter(i => i !== si);
+  state.queue.push(si);
+
+  const t = new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  state.log.push({ type:'receive', name: state.sales[si].name, time: t });
+
+  // 震动反馈（移动端）
+  if (navigator.vibrate) navigator.vibrate(30);
+
+  // 按钮动画
+  const btn = document.getElementById('receive-btn');
+  btn.classList.add('pop');
+  setTimeout(() => btn.classList.remove('pop'), 300);
+
+  save(); render();
+}
+
+// ===== 休息 =====
+function toggleRest(si) {
+  state.sales[si].status = state.sales[si].status === 'rest' ? 'active' : 'rest';
+  save(); render();
+}
+
+// ===== 跳过 =====
+let skipPos = -1;
+function showSkip(pos) {
+  skipPos = pos;
+  document.getElementById('skip-title').textContent = `跳过 ${state.sales[state.queue[pos]].name}？`;
+  document.getElementById('skip-modal').classList.remove('hidden');
+}
+function closeSkip() { document.getElementById('skip-modal').classList.add('hidden'); skipPos = -1; }
+function confirmSkip() {
+  if (skipPos < 0) return;
+  const si = state.queue[skipPos];
+  state.queue.splice(skipPos, 1);
+  state.queue.push(si);
+  const t = new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  state.log.push({ type:'skip', name: state.sales[si].name, time: t });
+  closeSkip(); save(); render();
+}
+
+// ===== 记录 =====
+function openLog() {
+  const el = document.getElementById('log-list');
+  if (state.log.length === 0) {
+    el.innerHTML = '<p class="text-center text-gray-300 py-8 text-sm">暂无记录</p>';
+  } else {
+    el.innerHTML = state.log.slice().reverse().map(item =>
+      `<div class="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 fade-up">
+        <span>${item.type === 'receive' ? '✅' : '⏭️'}</span>
+        <span class="flex-1 text-sm font-medium text-gray-700">${item.name}</span>
+        <span class="text-xs text-gray-400">${item.type === 'receive' ? '接客' : '跳过'}</span>
+        <span class="text-xs text-gray-400">${item.time}</span>
+      </div>`
+    ).join('');
+  }
+  document.getElementById('log-modal').classList.remove('hidden');
+}
+function closeLog() { document.getElementById('log-modal').classList.add('hidden'); }
+function clearLog() {
+  if (!confirm('清空今日所有记录？')) return;
+  state.log = [];
+  save();
+  closeLog();
+}
+
+// ===== 设置 =====
+function openSettings() {
+  document.getElementById('settings-list').innerHTML = state.sales.map((s, i) =>
+    `<div class="flex items-center gap-2 bg-gray-50 rounded-2xl px-4 py-3">
+      <span class="text-xl">${AVATARS[i % AVATARS.length]}</span>
+      <input id="sn-${i}" value="${s.name}" maxlength="6"
+        class="flex-1 bg-transparent font-semibold text-gray-800 outline-none text-base">
+      <button onclick="removeSale(${i})" class="text-red-400 text-xl px-1 py-0.5">✕</button>
+    </div>`
+  ).join('');
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+function addSale() {
+  if (state.sales.length >= 10) { alert('最多10位'); return; }
+  const ni = state.sales.length;
+  state.sales.push({ name: `销售${String.fromCharCode(65+ni)}`, count:0, status:'active' });
+  state.queue.push(ni);
+  openSettings();
+}
+function removeSale(i) {
+  if (state.sales.length <= 1) { alert('至少保留1位'); return; }
+  state.sales.splice(i, 1);
+  state.queue = state.queue.filter(x => x !== i).map(x => x > i ? x-1 : x);
+  openSettings();
+}
+function saveSettings() {
+  state.sales.forEach((s, i) => {
+    const v = (document.getElementById(`sn-${i}`)?.value || '').trim();
+    if (v) s.name = v;
+  });
+  closeSettings(); save(); render();
+}
+
+render();
+</script>
+</body>
+</html>

@@ -3,321 +3,490 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>轮接系统</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>销售轮接系统</title>
 <style>
-  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-  body { font-family: -apple-system, 'PingFang SC', sans-serif; background: #f5f5f7; user-select: none; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+         background: #f5f5f5; min-height: 100vh; }
 
-  .btn-receive {
-    background: linear-gradient(160deg, #22c55e, #16a34a);
-    box-shadow: 0 8px 24px rgba(34,197,94,0.4);
-    transition: transform .12s, box-shadow .12s;
-  }
-  .btn-receive:active { transform: scale(.96); box-shadow: 0 4px 12px rgba(34,197,94,0.3); }
-  .btn-receive.disabled { background: linear-gradient(160deg,#9ca3af,#6b7280); box-shadow: none; }
+  /* ── 设置页 ── */
+  #setup-page { display:flex; flex-direction:column; align-items:center;
+    justify-content:center; min-height:100vh; padding:24px; }
+  #setup-page h2 { font-size:20px; margin-bottom:16px; color:#333; }
+  #setup-page input { width:100%; max-width:400px; padding:12px 16px;
+    border:1px solid #ddd; border-radius:10px; font-size:15px; margin-bottom:12px; }
+  #setup-page button { width:100%; max-width:400px; padding:14px;
+    background:#1677ff; color:#fff; border:none; border-radius:10px;
+    font-size:16px; font-weight:600; cursor:pointer; }
+  #setup-page .hint { font-size:13px; color:#999; margin-top:16px; text-align:center; line-height:1.6; }
 
-  .card-colors { --c0:#6366f1; --c1:#ec4899; --c2:#0ea5e9; --c3:#10b981; --c4:#f59e0b; --c5:#8b5cf6; --c6:#f43f5e; --c7:#06b6d4; --c8:#84cc16; --c9:#fb923c; }
+  /* ── 主页 ── */
+  #main-page { display:none; flex-direction:column; min-height:100vh; }
+  .top-bar { background:#fff; padding:14px 16px; display:flex;
+    justify-content:space-between; align-items:center;
+    border-bottom:1px solid #eee; position:sticky; top:0; z-index:10; }
+  .top-bar h1 { font-size:17px; font-weight:700; color:#1a1a1a; }
+  .top-bar .admin-btn { font-size:13px; color:#999; cursor:pointer; padding:4px 10px;
+    border:1px solid #ddd; border-radius:20px; }
 
-  .next-ring { box-shadow: 0 0 0 3px #fff, 0 0 0 5px #22c55e; }
+  .next-card { margin:16px; background:#1677ff; border-radius:16px;
+    padding:20px; color:#fff; text-align:center; }
+  .next-label { font-size:13px; opacity:.8; margin-bottom:6px; }
+  .next-name { font-size:28px; font-weight:700; margin-bottom:4px; }
+  .next-sub { font-size:13px; opacity:.75; }
+  .receive-btn { margin:0 16px 16px; background:#fff; border:2px solid #1677ff;
+    color:#1677ff; font-size:20px; font-weight:700; padding:18px;
+    border-radius:14px; width:calc(100% - 32px); cursor:pointer;
+    transition:all .15s; }
+  .receive-btn:active { background:#e6f0ff; transform:scale(.97); }
 
-  @keyframes pop { 0%{transform:scale(1)} 40%{transform:scale(1.06)} 100%{transform:scale(1)} }
-  .pop { animation: pop .25s ease; }
+  .section-title { padding:8px 16px; font-size:13px; color:#999; font-weight:600; }
+  .sale-list { padding:0 16px 16px; display:flex; flex-direction:column; gap:10px; }
+  .sale-card { background:#fff; border-radius:14px; padding:14px 16px;
+    display:flex; align-items:center; gap:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  .sale-rank { width:28px; height:28px; border-radius:50%; background:#f0f0f0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:700; color:#666; flex-shrink:0; }
+  .sale-rank.top1 { background:#FFD700; color:#fff; }
+  .sale-rank.top2 { background:#C0C0C0; color:#fff; }
+  .sale-rank.top3 { background:#CD7F32; color:#fff; }
+  .sale-info { flex:1; }
+  .sale-name { font-size:16px; font-weight:600; color:#1a1a1a; }
+  .sale-meta { font-size:12px; color:#999; margin-top:2px; }
+  .sale-badge { font-size:11px; padding:2px 8px; border-radius:20px;
+    font-weight:600; flex-shrink:0; }
+  .badge-rest { background:#fff3e0; color:#f57c00; }
+  .badge-active { background:#e8f5e9; color:#388e3c; }
+  .badge-next { background:#e3f0ff; color:#1677ff; }
 
-  @keyframes fadeUp { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
-  .fade-up { animation: fadeUp .3s ease; }
+  .log-section { margin:0 16px 16px; background:#fff; border-radius:14px;
+    padding:14px 16px; }
+  .log-section h3 { font-size:14px; font-weight:700; color:#333; margin-bottom:10px; }
+  .log-item { font-size:13px; color:#666; padding:5px 0;
+    border-bottom:1px solid #f5f5f5; display:flex; justify-content:space-between; }
+  .log-item:last-child { border-bottom:none; }
+  .log-empty { font-size:13px; color:#ccc; text-align:center; padding:12px 0; }
 
-  .tag { display:inline-block; font-size:11px; padding:1px 7px; border-radius:99px; font-weight:600; }
+  /* ── 管理面板 ── */
+  #admin-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:100; align-items:flex-end; }
+  #admin-modal.open { display:flex; }
+  .admin-panel { background:#fff; width:100%; border-radius:20px 20px 0 0;
+    padding:20px; max-height:85vh; overflow-y:auto; }
+  .admin-panel h2 { font-size:18px; font-weight:700; margin-bottom:16px;
+    display:flex; justify-content:space-between; align-items:center; }
+  .admin-panel h2 span { font-size:22px; cursor:pointer; color:#999; }
+  .admin-section { margin-bottom:20px; }
+  .admin-section h3 { font-size:14px; color:#666; margin-bottom:10px; font-weight:600; }
+  .admin-row { display:flex; gap:8px; margin-bottom:8px; }
+  .admin-row input { flex:1; padding:10px 12px; border:1px solid #eee;
+    border-radius:10px; font-size:14px; }
+  .admin-row button, .admin-btn-full { padding:10px 16px; border:none;
+    border-radius:10px; font-size:14px; font-weight:600; cursor:pointer; }
+  .admin-btn-full { width:100%; margin-top:4px; padding:12px; }
+  .btn-primary { background:#1677ff; color:#fff; }
+  .btn-danger  { background:#ff4d4f; color:#fff; }
+  .btn-warn    { background:#fa8c16; color:#fff; }
+  .btn-gray    { background:#f5f5f5; color:#666; }
+  .sale-mgr-item { display:flex; align-items:center; gap:8px; padding:8px 0;
+    border-bottom:1px solid #f5f5f5; }
+  .sale-mgr-item:last-child { border-bottom:none; }
+  .sale-mgr-name { flex:1; font-size:14px; }
+  .beds-ctrl { display:flex; align-items:center; gap:6px; }
+  .beds-ctrl button { width:28px; height:28px; border:1px solid #ddd;
+    border-radius:8px; background:#fff; font-size:16px; cursor:pointer; }
+  .beds-ctrl span { min-width:24px; text-align:center; font-size:14px; font-weight:600; }
 
-  /* 模态遮罩 */
-  .modal-mask { position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:50;display:flex;align-items:flex-end;justify-content:center; }
-  .modal-box { background:#fff;width:100%;max-width:480px;border-radius:24px 24px 0 0;padding:24px 20px 36px; }
+  /* ── 密码输入 ── */
+  #pwd-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:200; align-items:center; justify-content:center; }
+  #pwd-modal.open { display:flex; }
+  .pwd-box { background:#fff; border-radius:16px; padding:24px; width:280px;
+    text-align:center; }
+  .pwd-box h3 { margin-bottom:16px; font-size:17px; }
+  .pwd-box input { width:100%; padding:12px; border:1px solid #eee;
+    border-radius:10px; font-size:18px; text-align:center; letter-spacing:6px;
+    margin-bottom:12px; }
+  .pwd-box .row { display:flex; gap:8px; }
+  .pwd-box .row button { flex:1; padding:12px; border:none; border-radius:10px;
+    font-size:15px; font-weight:600; cursor:pointer; }
+
+  .toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%);
+    background:rgba(0,0,0,.75); color:#fff; padding:10px 20px; border-radius:24px;
+    font-size:14px; display:none; z-index:999; white-space:nowrap; }
 </style>
 </head>
-<body class="card-colors min-h-screen flex flex-col">
+<body>
 
-<!-- ===== 顶栏 ===== -->
-<div class="bg-white/80 backdrop-blur sticky top-0 z-10 border-b border-gray-100">
-  <div class="max-w-md mx-auto px-4 h-12 flex items-center justify-between">
-    <span class="font-bold text-gray-800 text-base">🏠 销售轮接</span>
-    <div class="flex gap-2">
-      <button onclick="openLog()"    class="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">记录</button>
-      <button onclick="openSettings()" class="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-lg">设置</button>
+<!-- 设置页 -->
+<div id="setup-page">
+  <h2>🔗 连接数据库</h2>
+  <input id="db-url-input" type="url" placeholder="Firebase 数据库 URL，例如：https://xxx.firebaseio.com">
+  <button onclick="saveDbUrl()">开始使用</button>
+  <p class="hint">首次使用需要填写 Firebase 实时数据库地址<br>之后会自动记住，无需重复填写<br><br>
+    <b>创建方法：</b>前往 console.firebase.google.com<br>新建项目 → Realtime Database → 获取 URL</p>
+</div>
+
+<!-- 主页 -->
+<div id="main-page">
+  <div class="top-bar">
+    <h1>销售轮接系统</h1>
+    <div class="admin-btn" onclick="openPwd()">管理</div>
+  </div>
+
+  <div class="next-card">
+    <div class="next-label">下一位接待</div>
+    <div class="next-name" id="next-name">加载中…</div>
+    <div class="next-sub" id="next-sub"></div>
+  </div>
+
+  <button class="receive-btn" onclick="receiveCustomer()">✅ 接待客户</button>
+
+  <div class="section-title">今日轮接顺序（按业绩排列）</div>
+  <div class="sale-list" id="sale-list"></div>
+
+  <div class="log-section">
+    <h3>今日接待记录</h3>
+    <div id="log-list"><div class="log-empty">暂无记录</div></div>
+  </div>
+</div>
+
+<!-- 密码弹窗 -->
+<div id="pwd-modal">
+  <div class="pwd-box">
+    <h3>请输入管理密码</h3>
+    <input id="pwd-input" type="password" maxlength="20" placeholder="••••••">
+    <div class="row">
+      <button class="btn-gray" onclick="closePwd()">取消</button>
+      <button class="btn-primary" onclick="checkPwd()">确认</button>
     </div>
   </div>
 </div>
 
-<div class="max-w-md mx-auto w-full px-4 pt-5 pb-8 flex flex-col gap-4">
+<!-- 管理面板 -->
+<div id="admin-modal">
+  <div class="admin-panel">
+    <h2>管理面板 <span onclick="closeAdmin()">✕</span></h2>
 
-  <!-- ===== 当前上位（核心区域）===== -->
-  <div id="next-card" class="bg-white rounded-3xl shadow-sm p-5 text-center">
-    <p class="text-xs text-gray-400 mb-1 tracking-widest">当前上位</p>
-    <div class="flex items-center justify-center gap-3 mb-1">
-      <span id="next-avatar" class="text-5xl">👨‍💼</span>
-      <div class="text-left">
-        <p id="next-name" class="text-3xl font-bold text-gray-900">—</p>
-        <p class="text-sm text-gray-400">今日已接 <span id="next-count" class="font-bold text-gray-700">0</span> 位</p>
+    <div class="admin-section">
+      <h3>销售人员管理</h3>
+      <div id="mgr-list"></div>
+      <div class="admin-row" style="margin-top:12px;">
+        <input id="new-name" placeholder="姓名" style="max-width:100px;">
+        <input id="new-beds" type="number" placeholder="床位数" min="0" style="max-width:90px;">
+        <button class="btn-primary" onclick="addSale()">添加</button>
       </div>
     </div>
-    <p class="text-xs text-gray-300 mt-2">下一位：<span id="second-name" class="text-gray-500 font-medium">—</span></p>
-  </div>
 
-  <!-- ===== 大接客按钮 ===== -->
-  <button id="receive-btn" onclick="receiveCustomer()"
-    class="btn-receive w-full text-white text-2xl font-bold py-6 rounded-3xl">
-    ✅ 接客
-  </button>
-
-  <!-- ===== 轮转队列 ===== -->
-  <div class="bg-white rounded-3xl shadow-sm overflow-hidden">
-    <div class="px-4 pt-4 pb-2 flex items-center justify-between">
-      <span class="text-sm font-bold text-gray-700">轮转顺序</span>
-      <span class="text-xs text-gray-400" id="active-count">0人在岗</span>
+    <div class="admin-section">
+      <h3>重置今日数据</h3>
+      <button class="admin-btn-full btn-warn" onclick="resetDaily()">重置今日接待次数</button>
     </div>
-    <div id="queue-list" class="px-3 pb-3 space-y-2"></div>
-  </div>
 
-</div>
-
-<!-- ===== 记录弹窗 ===== -->
-<div id="log-modal" class="modal-mask hidden" onclick="if(event.target===this)closeLog()">
-  <div class="modal-box max-h-[80vh] flex flex-col">
-    <div class="flex items-center justify-between mb-4">
-      <span class="font-bold text-gray-800">今日记录</span>
-      <div class="flex gap-2">
-        <button onclick="clearLog()" class="text-xs text-red-400 bg-red-50 px-3 py-1.5 rounded-lg">清空</button>
-        <button onclick="closeLog()" class="text-gray-400 text-xl leading-none">✕</button>
+    <div class="admin-section">
+      <h3>修改管理密码</h3>
+      <div class="admin-row">
+        <input id="new-pwd" type="password" placeholder="新密码">
+        <button class="btn-primary" onclick="changePwd()">修改</button>
       </div>
     </div>
-    <div id="log-list" class="overflow-y-auto flex-1 space-y-1"></div>
   </div>
 </div>
 
-<!-- ===== 设置弹窗 ===== -->
-<div id="settings-modal" class="modal-mask hidden" onclick="if(event.target===this)closeSettings()">
-  <div class="modal-box">
-    <div class="flex items-center justify-between mb-1">
-      <span class="font-bold text-gray-800">销售名单</span>
-      <button onclick="closeSettings()" class="text-gray-400 text-xl leading-none">✕</button>
-    </div>
-    <p class="text-xs text-gray-400 mb-4">修改名字后点保存；最多10人</p>
-    <div id="settings-list" class="space-y-2 mb-4"></div>
-    <button onclick="addSale()" class="w-full py-3 border-2 border-dashed border-gray-200 rounded-2xl text-gray-400 text-sm mb-3">＋ 添加销售</button>
-    <button onclick="saveSettings()" class="w-full py-4 bg-blue-500 text-white rounded-2xl font-bold text-base">保存</button>
-  </div>
-</div>
+<div class="toast" id="toast"></div>
 
-<!-- ===== 跳过确认 ===== -->
-<div id="skip-modal" class="modal-mask hidden" onclick="if(event.target===this)closeSkip()">
-  <div class="modal-box">
-    <p class="text-center text-2xl mb-3">⏭️</p>
-    <p id="skip-title" class="text-center font-bold text-gray-800 text-lg mb-2"></p>
-    <p class="text-center text-sm text-gray-400 mb-6">跳过后移至队尾，不计本次接客</p>
-    <div class="flex gap-3">
-      <button onclick="closeSkip()" class="flex-1 py-3.5 border border-gray-200 rounded-2xl text-gray-500 font-medium">取消</button>
-      <button onclick="confirmSkip()" class="flex-1 py-3.5 bg-orange-500 text-white rounded-2xl font-bold">确认跳过</button>
-    </div>
-  </div>
-</div>
+<!-- Firebase 8 SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <script>
-// ===== 常量 =====
-const AVATARS = ['👨‍💼','👩‍💼','🧑‍💼','👨‍💼','👩‍💼','🧑‍💼','👨‍💼','👩‍💼','🧑‍💼','👨‍💼'];
-const BG_COLORS = [
-  'bg-indigo-500','bg-pink-500','bg-sky-500','bg-emerald-500','bg-amber-500',
-  'bg-violet-500','bg-rose-500','bg-cyan-500','bg-lime-500','bg-orange-500'
+// ── 初始数据 ──────────────────────────────────────────
+const INIT_SALES = [
+  { name:"毛晓勤", beds:6, received:0, resting:false },
+  { name:"李琴",   beds:6, received:0, resting:false },
+  { name:"阮荣清", beds:4, received:0, resting:false },
+  { name:"赵东珏", beds:3, received:0, resting:false },
+  { name:"刘玲花", beds:3, received:0, resting:false },
 ];
 
-// ===== 状态 =====
-function today() { return new Date().toLocaleDateString('zh-CN'); }
+// ── 状态 ──────────────────────────────────────────────
+let db = null;
+let sales = {};
+let logItems = [];
+let adminPwd = "888888";
+let adminUnlocked = false;
 
-function defaultState() {
-  return {
-    sales: ['销售A','销售B','销售C','销售D','销售E'].map(n => ({ name: n, count: 0, status: 'active' })),
-    queue: [0,1,2,3,4],
-    log: [],
-    date: today(),
-  };
+// ── Firebase 初始化 ────────────────────────────────────
+function initFirebase(dbUrl) {
+  if (!firebase.apps.length) {
+    firebase.initializeApp({
+      databaseURL: dbUrl.trim().replace(/\/$/, "")
+    });
+  }
+  db = firebase.database();
+  startListeners();
 }
 
-let state = (() => {
-  try {
-    const s = JSON.parse(localStorage.getItem('slr_v2') || 'null');
-    if (!s) return defaultState();
-    if (s.date !== today()) { s.sales.forEach(x => x.count = 0); s.log = []; s.date = today(); }
-    return s;
-  } catch { return defaultState(); }
-})();
+function startListeners() {
+  const today = todayStr();
 
-function save() { localStorage.setItem('slr_v2', JSON.stringify(state)); }
+  // 初始化（若无数据则写入）
+  db.ref("config/date").once("value").then(snap => {
+    if (!snap.val()) {
+      db.ref("config/date").set(today);
+      db.ref("config/pwd").set(adminPwd);
+      const initObj = {};
+      INIT_SALES.forEach((s, i) => { initObj["s" + i] = s; });
+      db.ref("sales").set(initObj);
+    } else if (snap.val() !== today) {
+      // 新的一天 → 重置接待次数
+      db.ref("sales").once("value").then(ss => {
+        const updates = {};
+        ss.forEach(child => {
+          updates["sales/" + child.key + "/received"] = 0;
+        });
+        updates["config/date"] = today;
+        db.ref().update(updates);
+      });
+    }
+  });
 
-// ===== 渲染 =====
-function render() {
-  const active = state.queue.filter(i => state.sales[i].status === 'active');
-  const nextIdx = active[0];
-  const secIdx  = active[1];
+  // 实时监听销售数据
+  db.ref("sales").on("value", snap => {
+    sales = {};
+    snap.forEach(child => { sales[child.key] = child.val(); });
+    renderSales();
+  });
 
-  // 当前上位
-  if (nextIdx !== undefined) {
-    const s = state.sales[nextIdx];
-    document.getElementById('next-name').textContent   = s.name;
-    document.getElementById('next-count').textContent  = s.count;
-    document.getElementById('next-avatar').textContent = AVATARS[nextIdx % AVATARS.length];
-  } else {
-    document.getElementById('next-name').textContent  = '无人在岗';
-    document.getElementById('next-count').textContent = '—';
-    document.getElementById('next-avatar').textContent = '😴';
-  }
-  document.getElementById('second-name').textContent =
-    secIdx !== undefined ? state.sales[secIdx].name : '—';
+  // 实时监听今日日志
+  db.ref("log/" + today).on("value", snap => {
+    logItems = [];
+    snap.forEach(child => { logItems.push(child.val()); });
+    logItems.reverse();
+    renderLog();
+  });
 
-  // 在岗人数
-  document.getElementById('active-count').textContent =
-    `${active.length} 人在岗`;
-
-  // 队列
-  const qEl = document.getElementById('queue-list');
-  qEl.innerHTML = '';
-  state.queue.forEach((si, pos) => {
-    const s = state.sales[si];
-    const isNext = pos === 0 && s.status === 'active';
-    const isRest = s.status === 'rest';
-    const bgClass = BG_COLORS[si % BG_COLORS.length];
-    const avatar  = AVATARS[si % AVATARS.length];
-
-    const row = document.createElement('div');
-    row.className = `flex items-center gap-3 px-3 py-2.5 rounded-2xl ${isNext ? 'bg-green-50 next-ring' : 'bg-gray-50'} ${isRest ? 'opacity-40' : ''}`;
-    row.innerHTML = `
-      <div class="w-9 h-9 rounded-full ${bgClass} flex items-center justify-center text-lg flex-shrink-0">${avatar}</div>
-      <div class="flex-1 min-w-0">
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="font-semibold text-gray-800 text-sm">${s.name}</span>
-          ${isNext ? '<span class="tag bg-green-100 text-green-700">上位</span>' : `<span class="tag bg-gray-200 text-gray-500">第${pos+1}位</span>`}
-          ${isRest ? '<span class="tag bg-gray-200 text-gray-400">休息</span>' : ''}
-        </div>
-        <span class="text-xs text-gray-400">今日 ${s.count} 位</span>
-      </div>
-      <div class="flex gap-1.5 flex-shrink-0">
-        <button onclick="toggleRest(${si})"
-          class="text-xs px-2.5 py-1.5 rounded-lg ${isRest ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'} font-medium">
-          ${isRest ? '上班' : '休息'}
-        </button>
-        ${!isNext ? `<button onclick="showSkip(${pos})"
-          class="text-xs px-2.5 py-1.5 rounded-lg bg-orange-100 text-orange-600 font-medium">跳过</button>` : ''}
-      </div>
-    `;
-    qEl.appendChild(row);
+  // 读取密码
+  db.ref("config/pwd").on("value", snap => {
+    if (snap.val()) adminPwd = snap.val();
   });
 }
 
-// ===== 接客 =====
+// ── 工具 ──────────────────────────────────────────────
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function sorted() {
+  return Object.entries(sales)
+    .map(([k, v]) => ({ key: k, ...v }))
+    .sort((a, b) => b.beds - a.beds || a.received - b.received);
+}
+
+function nextActive() {
+  return sorted().find(s => !s.resting) || null;
+}
+
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.display = "block";
+  setTimeout(() => { el.style.display = "none"; }, 2200);
+}
+
+// ── 渲染 ──────────────────────────────────────────────
+function renderSales() {
+  const list = sorted();
+  const next = nextActive();
+
+  // 更新顶部卡片
+  if (next) {
+    document.getElementById("next-name").textContent = next.name;
+    document.getElementById("next-sub").textContent =
+      `已成交 ${next.beds} 张床位 · 今日已接 ${next.received} 位`;
+  } else {
+    document.getElementById("next-name").textContent = "全员休息中";
+    document.getElementById("next-sub").textContent = "";
+  }
+
+  // 销售列表
+  const container = document.getElementById("sale-list");
+  container.innerHTML = "";
+  list.forEach((s, i) => {
+    const isNext = next && s.key === next.key;
+    const rankClass = i === 0 ? "top1" : i === 1 ? "top2" : i === 2 ? "top3" : "";
+    const badge = s.resting
+      ? `<span class="sale-badge badge-rest">休息</span>`
+      : isNext
+      ? `<span class="sale-badge badge-next">下一位</span>`
+      : `<span class="sale-badge badge-active">轮接中</span>`;
+
+    const card = document.createElement("div");
+    card.className = "sale-card";
+    card.innerHTML = `
+      <div class="sale-rank ${rankClass}">${i + 1}</div>
+      <div class="sale-info">
+        <div class="sale-name">${s.name}</div>
+        <div class="sale-meta">床位：${s.beds} 张 · 今日接待：${s.received} 位</div>
+      </div>
+      ${badge}`;
+    container.appendChild(card);
+  });
+
+  // 同步管理面板（若已打开）
+  renderMgrList();
+}
+
+function renderLog() {
+  const container = document.getElementById("log-list");
+  if (!logItems.length) {
+    container.innerHTML = '<div class="log-empty">暂无记录</div>';
+    return;
+  }
+  container.innerHTML = logItems.map(item =>
+    `<div class="log-item"><span>${item.name}</span><span>${item.time}</span></div>`
+  ).join("");
+}
+
+function renderMgrList() {
+  const container = document.getElementById("mgr-list");
+  if (!container) return;
+  const list = sorted();
+  container.innerHTML = list.map(s => `
+    <div class="sale-mgr-item">
+      <span class="sale-mgr-name">${s.name}</span>
+      <div class="beds-ctrl">
+        <button onclick="adjustBeds('${s.key}',-1)">－</button>
+        <span>${s.beds}</span>
+        <button onclick="adjustBeds('${s.key}',1)">＋</button>
+      </div>
+      <button class="btn-danger" style="padding:4px 10px;border-radius:8px;border:none;font-size:13px;cursor:pointer;margin-left:6px;"
+        onclick="removeSale('${s.key}','${s.name}')">删除</button>
+      <button style="padding:4px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px;cursor:pointer;margin-left:4px;"
+        onclick="toggleRest('${s.key}','${s.resting}')">
+        ${s.resting ? "上班" : "休息"}
+      </button>
+    </div>`).join("");
+}
+
+// ── 操作 ──────────────────────────────────────────────
 function receiveCustomer() {
-  const active = state.queue.filter(i => state.sales[i].status === 'active');
-  if (active.length === 0) { alert('当前没有在岗销售，请先取消休息。'); return; }
-
-  const si = active[0];
-  state.sales[si].count++;
-  state.queue = state.queue.filter(i => i !== si);
-  state.queue.push(si);
-
-  const t = new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  state.log.push({ type:'receive', name: state.sales[si].name, time: t });
-
-  // 震动反馈（移动端）
-  if (navigator.vibrate) navigator.vibrate(30);
-
-  // 按钮动画
-  const btn = document.getElementById('receive-btn');
-  btn.classList.add('pop');
-  setTimeout(() => btn.classList.remove('pop'), 300);
-
-  save(); render();
+  const next = nextActive();
+  if (!next) { toast("没有可接待的销售人员"); return; }
+  const now = new Date();
+  const timeStr = now.toTimeString().slice(0, 5);
+  const updates = {};
+  updates["sales/" + next.key + "/received"] = (next.received || 0) + 1;
+  updates["log/" + todayStr() + "/" + Date.now()] = { name: next.name, time: timeStr };
+  db.ref().update(updates).catch(() => toast("写入失败，请检查网络"));
+  toast(`已记录：${next.name} 接待客户`);
 }
 
-// ===== 休息 =====
-function toggleRest(si) {
-  state.sales[si].status = state.sales[si].status === 'rest' ? 'active' : 'rest';
-  save(); render();
+function toggleRest(key, curResting) {
+  db.ref("sales/" + key + "/resting").set(curResting === "true" || curResting === true ? false : true);
 }
 
-// ===== 跳过 =====
-let skipPos = -1;
-function showSkip(pos) {
-  skipPos = pos;
-  document.getElementById('skip-title').textContent = `跳过 ${state.sales[state.queue[pos]].name}？`;
-  document.getElementById('skip-modal').classList.remove('hidden');
-}
-function closeSkip() { document.getElementById('skip-modal').classList.add('hidden'); skipPos = -1; }
-function confirmSkip() {
-  if (skipPos < 0) return;
-  const si = state.queue[skipPos];
-  state.queue.splice(skipPos, 1);
-  state.queue.push(si);
-  const t = new Date().toLocaleTimeString('zh-CN', { hour:'2-digit', minute:'2-digit', second:'2-digit' });
-  state.log.push({ type:'skip', name: state.sales[si].name, time: t });
-  closeSkip(); save(); render();
+function adjustBeds(key, delta) {
+  const cur = sales[key] ? (sales[key].beds || 0) : 0;
+  const newVal = Math.max(0, cur + delta);
+  db.ref("sales/" + key + "/beds").set(newVal);
 }
 
-// ===== 记录 =====
-function openLog() {
-  const el = document.getElementById('log-list');
-  if (state.log.length === 0) {
-    el.innerHTML = '<p class="text-center text-gray-300 py-8 text-sm">暂无记录</p>';
-  } else {
-    el.innerHTML = state.log.slice().reverse().map(item =>
-      `<div class="flex items-center gap-3 bg-gray-50 rounded-xl px-3 py-2.5 fade-up">
-        <span>${item.type === 'receive' ? '✅' : '⏭️'}</span>
-        <span class="flex-1 text-sm font-medium text-gray-700">${item.name}</span>
-        <span class="text-xs text-gray-400">${item.type === 'receive' ? '接客' : '跳过'}</span>
-        <span class="text-xs text-gray-400">${item.time}</span>
-      </div>`
-    ).join('');
-  }
-  document.getElementById('log-modal').classList.remove('hidden');
-}
-function closeLog() { document.getElementById('log-modal').classList.add('hidden'); }
-function clearLog() {
-  if (!confirm('清空今日所有记录？')) return;
-  state.log = [];
-  save();
-  closeLog();
-}
-
-// ===== 设置 =====
-function openSettings() {
-  document.getElementById('settings-list').innerHTML = state.sales.map((s, i) =>
-    `<div class="flex items-center gap-2 bg-gray-50 rounded-2xl px-4 py-3">
-      <span class="text-xl">${AVATARS[i % AVATARS.length]}</span>
-      <input id="sn-${i}" value="${s.name}" maxlength="6"
-        class="flex-1 bg-transparent font-semibold text-gray-800 outline-none text-base">
-      <button onclick="removeSale(${i})" class="text-red-400 text-xl px-1 py-0.5">✕</button>
-    </div>`
-  ).join('');
-  document.getElementById('settings-modal').classList.remove('hidden');
-}
-function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
 function addSale() {
-  if (state.sales.length >= 10) { alert('最多10位'); return; }
-  const ni = state.sales.length;
-  state.sales.push({ name: `销售${String.fromCharCode(65+ni)}`, count:0, status:'active' });
-  state.queue.push(ni);
-  openSettings();
-}
-function removeSale(i) {
-  if (state.sales.length <= 1) { alert('至少保留1位'); return; }
-  state.sales.splice(i, 1);
-  state.queue = state.queue.filter(x => x !== i).map(x => x > i ? x-1 : x);
-  openSettings();
-}
-function saveSettings() {
-  state.sales.forEach((s, i) => {
-    const v = (document.getElementById(`sn-${i}`)?.value || '').trim();
-    if (v) s.name = v;
-  });
-  closeSettings(); save(); render();
+  const name = document.getElementById("new-name").value.trim();
+  const beds = parseInt(document.getElementById("new-beds").value) || 0;
+  if (!name) { toast("请填写姓名"); return; }
+  const newKey = "s" + Date.now();
+  db.ref("sales/" + newKey).set({ name, beds, received: 0, resting: false });
+  document.getElementById("new-name").value = "";
+  document.getElementById("new-beds").value = "";
+  toast(`已添加：${name}`);
 }
 
-render();
+function removeSale(key, name) {
+  if (!confirm(`确定删除 ${name}？`)) return;
+  db.ref("sales/" + key).remove();
+  toast(`已删除：${name}`);
+}
+
+function resetDaily() {
+  if (!confirm("确定重置今日所有人的接待次数？")) return;
+  const updates = {};
+  Object.keys(sales).forEach(k => { updates["sales/" + k + "/received"] = 0; });
+  updates["config/date"] = todayStr();
+  db.ref().update(updates);
+  toast("已重置今日接待次数");
+}
+
+function changePwd() {
+  const np = document.getElementById("new-pwd").value.trim();
+  if (!np) { toast("密码不能为空"); return; }
+  db.ref("config/pwd").set(np);
+  document.getElementById("new-pwd").value = "";
+  toast("密码已修改");
+}
+
+// ── 密码弹窗 ──────────────────────────────────────────
+function openPwd() {
+  if (adminUnlocked) { openAdmin(); return; }
+  document.getElementById("pwd-modal").classList.add("open");
+  document.getElementById("pwd-input").value = "";
+  setTimeout(() => document.getElementById("pwd-input").focus(), 100);
+}
+function closePwd() {
+  document.getElementById("pwd-modal").classList.remove("open");
+}
+function checkPwd() {
+  const val = document.getElementById("pwd-input").value;
+  if (val === adminPwd) {
+    adminUnlocked = true;
+    closePwd();
+    openAdmin();
+  } else {
+    toast("密码错误");
+    document.getElementById("pwd-input").value = "";
+  }
+}
+document.getElementById("pwd-input").addEventListener("keydown", e => {
+  if (e.key === "Enter") checkPwd();
+});
+
+// ── 管理面板 ──────────────────────────────────────────
+function openAdmin() {
+  renderMgrList();
+  document.getElementById("admin-modal").classList.add("open");
+}
+function closeAdmin() {
+  document.getElementById("admin-modal").classList.remove("open");
+}
+document.getElementById("admin-modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("admin-modal")) closeAdmin();
+});
+
+// ── 设置页 ────────────────────────────────────────────
+function saveDbUrl() {
+  const url = document.getElementById("db-url-input").value.trim();
+  if (!url || !url.startsWith("https://")) {
+    toast("请输入正确的数据库 URL（https://...）");
+    return;
+  }
+  localStorage.setItem("fb_db_url", url);
+  startApp(url);
+}
+
+function startApp(dbUrl) {
+  document.getElementById("setup-page").style.display = "none";
+  document.getElementById("main-page").style.display = "flex";
+  initFirebase(dbUrl);
+}
+
+// ── 启动 ──────────────────────────────────────────────
+const savedUrl = localStorage.getItem("fb_db_url");
+if (savedUrl) {
+  startApp(savedUrl);
+} else {
+  document.getElementById("setup-page").style.display = "flex";
+}
 </script>
 </body>
 </html>
